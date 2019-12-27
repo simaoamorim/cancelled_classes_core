@@ -1,2 +1,2 @@
-# cancelled_classes_core
+# Cancelled Classes Core
 APP Project: "Cancelled Classes" Server Core
