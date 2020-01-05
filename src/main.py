@@ -37,7 +37,6 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
-
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, handle_exit_signal)
     signal.signal(signal.SIGTERM, handle_exit_signal)
