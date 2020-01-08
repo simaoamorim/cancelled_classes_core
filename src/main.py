@@ -3,9 +3,11 @@ import http.server
 import json
 import logging
 import signal
+import cc_db
 
 logger = logging.Logger
 httpd = http.server.HTTPServer
+db = cc_db.CancelledClassesDB
 
 
 def handle_exit_signal(sig, frame):
@@ -22,7 +24,15 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             resp = {"result": "Staying Alive!"}
             self.wfile.write(json.dumps(resp, indent=4).encode("UTF-8"))
         elif self.path == "/get_all":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                # TODO: format the response as expected
+                result = db.get_all()
+                self.send_response(http.HTTPStatus.OK)
+                self.end_headers()
+                self.wfile.write(result.encode("UTF-8"))
+                self.wfile.flush()
+            except db.Error:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
         elif self.path.startswith("/get?"):
             self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
         elif self.path == "/delete_all":
@@ -46,6 +56,7 @@ if __name__ == "__main__":
     handler.setLevel(logging.INFO)
     logger.addHandler(handler)
     logger.info("App started")
+    db = cc_db.CancelledClassesDB("cancelled_classes.db")
     httpd = http.server.HTTPServer(('', 8080), RequestDispatcher)
     httpd.serve_forever()
     logger.info("Exiting")
