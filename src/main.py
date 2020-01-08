@@ -59,4 +59,5 @@ if __name__ == "__main__":
     db = cc_db.CancelledClassesDB("cancelled_classes.db")
     httpd = http.server.HTTPServer(('', 8080), RequestDispatcher)
     httpd.serve_forever()
+    db.close()
     logger.info("Exiting")

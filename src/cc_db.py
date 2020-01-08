@@ -42,6 +42,10 @@ class CancelledClassesDB(sql.Connection):
         logger.info(f"Query result:\n {res}")
         return res.__str__()
 
+    def close(self):
+        self.cur.close()
+        super().close()
+
 
 if __name__ == "__main__":
     # logger = logging.getLogger(__name__)
