@@ -25,8 +25,7 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             self.wfile.write(json.dumps(resp, indent=4).encode("UTF-8"))
         elif self.path == "/get_all":
             try:
-                # TODO: format the response as expected
-                result = db.get_all()
+                result = json.dumps(db.get_all(), indent=4)
                 self.send_response(http.HTTPStatus.OK)
                 self.end_headers()
                 self.wfile.write(result.encode("UTF-8"))

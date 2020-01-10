@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import sqlite3 as sql
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -9,8 +10,12 @@ class CancelledClassesDB(sql.Connection):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cur = self.cursor()
+        self.cur.row_factory = sql.Row
         self.table_name = "cc_table"
-        self.cur.execute("""SELECT COUNT(name),name FROM sqlite_master WHERE type='table' AND name='cc_table';""")
+        self.cur.execute("""SELECT COUNT(name),name 
+                            FROM sqlite_master 
+                            WHERE type='table' AND name='cc_table'
+                            ;""")
         res = self.cur.fetchone()
         if res[0] == 1 and res[1] == "cc_table":
             logger.info("Table exists")
@@ -26,7 +31,7 @@ class CancelledClassesDB(sql.Connection):
                     year INTEGER NOT NULL,
                     hour INTEGER NOT NULL,
                     minute INTEGER NOT NULL
-                    )"""
+                    );"""
             logger.debug(f"Running query: {query}")
             try:
                 self.cur.execute(query)
@@ -37,10 +42,14 @@ class CancelledClassesDB(sql.Connection):
         self.cur.fetchall()
 
     def get_all(self):
-        query = "SELECT * FROM cc_table"
+        query = "SELECT class_name, " \
+                "event_type, day, " \
+                "month, year, " \
+                "hour, minute " \
+                "FROM cc_table"
         res = self.cur.execute(query).fetchall()
         logger.info(f"Query result:\n {res}")
-        return res.__str__()
+        return {"all_events": [dict(item) for item in res]}
 
     def close(self):
         self.cur.close()
