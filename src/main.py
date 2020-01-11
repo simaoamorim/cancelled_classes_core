@@ -4,6 +4,7 @@ import json
 import logging
 import signal
 import cc_db
+from urllib.parse import urlparse, parse_qs, parse_qsl
 
 logger = logging.Logger
 httpd = http.server.HTTPServer
@@ -33,7 +34,13 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             except db.Error:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
         elif self.path.startswith("/get?"):
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                query_components = dict(parse_qsl(urlparse(self.path).query))
+                self.send_response(http.HTTPStatus.OK)
+                self.end_headers()
+                self.wfile.write(json.dumps(query_components, indent=4).encode("UTF-8"))
+            except db.Error:
+                self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
         elif self.path == "/delete_all":
             self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
         else:
