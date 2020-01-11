@@ -36,11 +36,18 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
         elif self.path.startswith("/get?"):
             try:
                 query_components = dict(parse_qsl(urlparse(self.path).query))
+                if query_components.__len__() == 0:
+                    raise ValueError
+                result = db.get_filtered(query_components)
+                result.update(query_components)
                 self.send_response(http.HTTPStatus.OK)
                 self.end_headers()
-                self.wfile.write(json.dumps(query_components, indent=4).encode("UTF-8"))
-            except db.Error:
-                self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+                self.wfile.write(json.dumps(result, indent=4).encode("UTF-8"))
+            except db.Error as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
+            except ValueError:
+                self.send_error(http.HTTPStatus.BAD_REQUEST)
         elif self.path == "/delete_all":
             self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
         else:

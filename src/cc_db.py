@@ -4,6 +4,13 @@ import logging
 import json
 
 logger = logging.getLogger(__name__)
+expected_filters = {'class_name': '%',
+                    'event_type': '%',
+                    'year': '%',
+                    'month': '%',
+                    'day': '%',
+                    'hour': '%',
+                    'minute': '%'}
 
 
 class CancelledClassesDB(sql.Connection):
@@ -42,14 +49,32 @@ class CancelledClassesDB(sql.Connection):
         self.cur.fetchall()
 
     def get_all(self):
-        query = "SELECT class_name, " \
-                "event_type, day, " \
-                "month, year, " \
+        query = "SELECT class_name, event_type, " \
+                "year, month, day, " \
                 "hour, minute " \
                 "FROM cc_table"
         res = self.cur.execute(query).fetchall()
         logger.info(f"Query result:\n {res}")
         return {"all_events": [dict(item) for item in res]}
+
+    def get_filtered(self, filt):
+        # TODO: test SQL injection
+        query = "SELECT class_name, event_type, " \
+                "year, month, day, " \
+                "hour, minute " \
+                "FROM cc_table " \
+                "WHERE class_name LIKE ? AND " \
+                "event_type LIKE ? AND " \
+                "year LIKE ? AND " \
+                "month LIKE ? AND " \
+                "day LIKE ? AND " \
+                "hour LIKE ? AND " \
+                "minute LIKE ?;"
+        params = ()
+        for item in expected_filters:
+            params += ('%'+(filt.get(item) if item in filt else ''), )
+        result = self.cur.execute(query, params)
+        return {'all_events': [dict(item) for item in result]}
 
     def close(self):
         self.cur.close()
@@ -57,7 +82,6 @@ class CancelledClassesDB(sql.Connection):
 
 
 if __name__ == "__main__":
-    # logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
