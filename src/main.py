@@ -31,8 +31,9 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(result.encode("UTF-8"))
                 self.wfile.flush()
-            except db.Error:
+            except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         elif self.path.startswith("/get?"):
             try:
                 query_components = dict(parse_qsl(urlparse(self.path).query))
@@ -43,6 +44,7 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                 self.send_response(http.HTTPStatus.OK)
                 self.end_headers()
                 self.wfile.write(json.dumps(result, indent=4).encode("UTF-8"))
+                self.wfile.flush()
             except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
                 logger.error(e)
@@ -58,7 +60,8 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             try:
                 if self.headers.get_content_type() == "application/json":
                     length = int(self.headers['Content-Length'])
-                    print(json.loads(self.rfile.read(length)))
+                    data = self.rfile.read(length)
+                    print(json.loads(data))
                     self.send_response(http.HTTPStatus.OK)
                     self.end_headers()
                     self.wfile.write(json.dumps({'result': 'Failure'}).encode("UTF-8"))
