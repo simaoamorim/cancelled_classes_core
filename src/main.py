@@ -55,7 +55,18 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
 
     def do_POST(self):
         if self.path == "/add":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                if self.headers.get_content_type() == "application/json":
+                    length = int(self.headers['Content-Length'])
+                    print(json.loads(self.rfile.read(length)))
+                    self.send_response(http.HTTPStatus.OK)
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'result': 'Failure'}).encode("UTF-8"))
+                else:
+                    self.send_error(http.HTTPStatus.BAD_REQUEST)
+            except Exception as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
