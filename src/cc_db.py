@@ -4,13 +4,13 @@ import logging
 import json
 
 logger = logging.getLogger(__name__)
-expected_filters = {'class_name': '%',
-                    'event_type': '%',
-                    'year': '%',
-                    'month': '%',
-                    'day': '%',
-                    'hour': '%',
-                    'minute': '%'}
+expected_fields = {'class_name': '%',
+                   'event_type': '%',
+                   'year': '%',
+                   'month': '%',
+                   'day': '%',
+                   'hour': '%',
+                   'minute': '%'}
 
 
 class CancelledClassesDB(sql.Connection):
@@ -57,7 +57,7 @@ class CancelledClassesDB(sql.Connection):
         logger.info(f"Query result:\n {res}")
         return {"all_events": [dict(item) for item in res]}
 
-    def get_filtered(self, filt):
+    def get_filtered(self, filter):
         # TODO: test SQL injection
         query = "SELECT class_name, event_type, " \
                 "year, month, day, " \
@@ -71,13 +71,35 @@ class CancelledClassesDB(sql.Connection):
                 "hour LIKE ? AND " \
                 "minute LIKE ?;"
         params = ()
-        for item in expected_filters:
-            params += ('%'+(filt.get(item) if item in filt else ''), )
+        for item in expected_fields:
+            params += ('%' + (filter.get(item) if item in filter else ''),)
         result = self.cur.execute(query, params)
         return {'all_events': [dict(item) for item in result]}
 
+    def add(self, fields):
+        if len(fields) != len(expected_fields):
+            print("No match for parameters")
+            return {'result': 'Failure'}
+        query = "INSERT INTO cc_table (class_name, event_type, " \
+                "year, month, day, " \
+                "hour, minute) " \
+                "VALUES (?, ?, ?, ?, ?, ?, ?);"
+        params = ()
+        for item in expected_fields:
+            params += (fields.get(item), )
+        if len(params) != len(expected_fields):
+            logger.error("Failed to parse required arguments")
+            return {'result': 'Failure'}
+        self.cur.execute(query, params)
+        self.commit()
+        return {'result': 'Success'}
+
     def clear(self):
-        self.cur.execute("DELETE FROM cc_table")
+        try:
+            self.cur.execute("DELETE FROM cc_table")
+            return {'result': 'Success'}
+        except self.Error:
+            return {'result': 'Failure'}
 
     def close(self):
         self.cur.close()

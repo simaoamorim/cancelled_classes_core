@@ -20,17 +20,12 @@ def handle_exit_signal(sig, frame):
 class RequestDispatcher(http.server.CGIHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
-            self.send_response(http.HTTPStatus.OK)
-            self.end_headers()
-            resp = {"result": "Staying Alive!"}
-            self.wfile.write(json.dumps(resp, indent=4).encode("UTF-8"))
+            resp = json.dumps({"result": "Staying Alive!"}, indent=4)
+            self.send_ok_response(resp)
         elif self.path == "/get_all":
             try:
-                result = json.dumps(db.get_all(), indent=4)
-                self.send_response(http.HTTPStatus.OK)
-                self.end_headers()
-                self.wfile.write(result.encode("UTF-8"))
-                self.wfile.flush()
+                resp = json.dumps(db.get_all(), indent=4)
+                self.send_ok_response(resp)
             except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
                 logger.error(e)
@@ -41,26 +36,14 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                     raise ValueError
                 result = db.get_filtered(query_components)
                 result.update(query_components)
-                self.send_response(http.HTTPStatus.OK)
-                self.end_headers()
-                self.wfile.write(json.dumps(result, indent=4).encode("UTF-8"))
-                self.wfile.flush()
+                resp = json.dumps(result, indent=4)
+                self.send_ok_response(resp)
             except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
                 logger.error(e)
-            except ValueError:
-                self.send_error(http.HTTPStatus.BAD_REQUEST)
         elif self.path == "/delete_all":
-            try:
-                db.clear()
-                resp = {'result': 'Success'}
-                self.send_response(http.HTTPStatus.OK)
-                self.end_headers()
-                self.wfile.write(json.dumps(resp).encode("UTF-8"))
-                self.wfile.flush()
-            except db.Error as e:
-                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
-                logger.error(e)
+            resp = json.dumps(db.clear(), indent=4)
+            self.send_ok_response(resp)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -69,11 +52,9 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             try:
                 if self.headers.get_content_type() == "application/json":
                     length = int(self.headers['Content-Length'])
-                    data = self.rfile.read(length)
-                    print(json.loads(data))
-                    self.send_response(http.HTTPStatus.OK)
-                    self.end_headers()
-                    self.wfile.write(json.dumps({'result': 'Failure'}).encode("UTF-8"))
+                    data = json.loads(self.rfile.read(length))
+                    resp = json.dumps(db.add(data))
+                    self.send_ok_response(resp)
                 else:
                     self.send_error(http.HTTPStatus.BAD_REQUEST)
             except Exception as e:
@@ -81,6 +62,12 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                 logger.error(e)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def send_ok_response(self, data):
+        self.send_response(http.HTTPStatus.OK)
+        self.end_headers()
+        self.wfile.write(data.encode("UTF-8"))
+        self.wfile.flush()
 
 
 if __name__ == "__main__":
