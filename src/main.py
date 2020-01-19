@@ -83,7 +83,7 @@ if __name__ == "__main__":
     handler.setLevel(logging.INFO)
     logger.addHandler(handler)
     logger.info("App started")
-    db = cc_db.CancelledClassesDB("cancelled_classes.db")
+    db = cc_db.CancelledClassesDB("db/cancelled_classes.db")
     httpd = http.server.HTTPServer(('', 8080), RequestDispatcher)
     httpd.serve_forever()
     db.close()

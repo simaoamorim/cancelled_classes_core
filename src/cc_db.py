@@ -86,6 +86,6 @@ if __name__ == "__main__":
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     logger.addHandler(ch)
-    db = CancelledClassesDB("cancelled_classes.db")
+    db = CancelledClassesDB("db/cancelled_classes.db")
     db.get_all()
     exit(0)
