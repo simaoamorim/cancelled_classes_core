@@ -51,7 +51,16 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
             except ValueError:
                 self.send_error(http.HTTPStatus.BAD_REQUEST)
         elif self.path == "/delete_all":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                db.clear()
+                resp = {'result': 'Success'}
+                self.send_response(http.HTTPStatus.OK)
+                self.end_headers()
+                self.wfile.write(json.dumps(resp).encode("UTF-8"))
+                self.wfile.flush()
+            except db.Error as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
 

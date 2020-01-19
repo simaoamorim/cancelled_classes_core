@@ -76,6 +76,9 @@ class CancelledClassesDB(sql.Connection):
         result = self.cur.execute(query, params)
         return {'all_events': [dict(item) for item in result]}
 
+    def clear(self):
+        self.cur.execute("DELETE FROM cc_table")
+
     def close(self):
         self.cur.close()
         super().close()
