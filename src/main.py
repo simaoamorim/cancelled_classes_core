@@ -3,9 +3,12 @@ import http.server
 import json
 import logging
 import signal
+import cc_db
+from urllib.parse import urlparse, parse_qs, parse_qsl
 
 logger = logging.Logger
 httpd = http.server.HTTPServer
+db = cc_db.CancelledClassesDB
 
 
 def handle_exit_signal(sig, frame):
@@ -17,24 +20,54 @@ def handle_exit_signal(sig, frame):
 class RequestDispatcher(http.server.CGIHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
-            self.send_response(http.HTTPStatus.OK)
-            self.end_headers()
-            resp = {"result": "Staying Alive!"}
-            self.wfile.write(json.dumps(resp, indent=4).encode("UTF-8"))
+            resp = json.dumps({"result": "Staying Alive!"}, indent=4)
+            self.send_ok_response(resp)
         elif self.path == "/get_all":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                resp = json.dumps(db.get_all(), indent=4)
+                self.send_ok_response(resp)
+            except db.Error as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         elif self.path.startswith("/get?"):
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                query_components = dict(parse_qsl(urlparse(self.path).query))
+                if query_components.__len__() == 0:
+                    raise ValueError
+                result = db.get_filtered(query_components)
+                result.update(query_components)
+                resp = json.dumps(result, indent=4)
+                self.send_ok_response(resp)
+            except db.Error as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         elif self.path == "/delete_all":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            resp = json.dumps(db.clear(), indent=4)
+            self.send_ok_response(resp)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self):
         if self.path == "/add":
-            self.send_error(http.HTTPStatus.NOT_IMPLEMENTED)
+            try:
+                if self.headers.get_content_type() == "application/json":
+                    length = int(self.headers['Content-Length'])
+                    data = json.loads(self.rfile.read(length))
+                    resp = json.dumps(db.add(data))
+                    self.send_ok_response(resp)
+                else:
+                    self.send_error(http.HTTPStatus.BAD_REQUEST)
+            except Exception as e:
+                self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+                logger.error(e)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def send_ok_response(self, data):
+        self.send_response(http.HTTPStatus.OK)
+        self.end_headers()
+        self.wfile.write(data.encode("UTF-8"))
+        self.wfile.flush()
 
 
 if __name__ == "__main__":
@@ -46,6 +79,8 @@ if __name__ == "__main__":
     handler.setLevel(logging.INFO)
     logger.addHandler(handler)
     logger.info("App started")
+    db = cc_db.CancelledClassesDB("db/cancelled_classes.db")
     httpd = http.server.HTTPServer(('', 8080), RequestDispatcher)
     httpd.serve_forever()
+    db.close()
     logger.info("Exiting")

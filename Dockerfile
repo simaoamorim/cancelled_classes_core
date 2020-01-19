@@ -4,8 +4,9 @@ RUN apk add python3
 RUN mkdir /core
 
 FROM corebase
-COPY ./src/*.py /core
+COPY ./src/ /core/
 RUN chmod +x /core/*.py
 EXPOSE 8080/tcp
 
-CMD python3 /core/main.py
+WORKDIR /core/
+CMD python3 ./main.py
