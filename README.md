@@ -3,7 +3,10 @@ APP Project: "Cancelled Classes" Server Core
 
 ## How to use
 ### Using already built Docker container
-Download an existing container from https://github.com/up201605618/cancelled_classes_core/packages
+Download an existing container from 
+https://github.com/up201605618/cancelled_classes_core/packages
+or
+https://hub.docker.com/r/upa201605618/cancelled_classes_core/tags
 and run:
 ```shell script
 docker run
