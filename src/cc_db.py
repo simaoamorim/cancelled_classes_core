@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 import sqlite3 as sql
 import logging
-import json
 
 logger = logging.getLogger(__name__)
 expected_fields = {'class_name': '%',
@@ -57,7 +56,7 @@ class CancelledClassesDB(sql.Connection):
         logger.info(f"Query result:\n {res}")
         return {"all_events": [dict(item) for item in res]}
 
-    def get_filtered(self, filter):
+    def get_filtered(self, filter_):
         # TODO: test SQL injection
         query = "SELECT class_name, event_type, " \
                 "year, month, day, " \
@@ -72,7 +71,10 @@ class CancelledClassesDB(sql.Connection):
                 "minute LIKE ?;"
         params = ()
         for item in expected_fields:
-            params += ('%' + (filter.get(item) if item in filter else ''),)
+            if item != 'class_name' and item != 'event_type':
+                params += (f"%{int(filter_.get(item)) if item in filter_ else ''}",)
+            else:
+                params += ('%' + (filter_.get(item) if item in filter_ else ''),)
         result = self.cur.execute(query, params)
         return {'all_events': [dict(item) for item in result]}
 
@@ -86,7 +88,10 @@ class CancelledClassesDB(sql.Connection):
                 "VALUES (?, ?, ?, ?, ?, ?, ?);"
         params = ()
         for item in expected_fields:
-            params += (fields.get(item), )
+            if item != 'class_name' and item != 'event_type':
+                params += (int(fields.get(item)), )
+            else:
+                params += (fields.get(item), )
         if len(params) != len(expected_fields):
             logger.error("Failed to parse required arguments")
             return {'result': 'Failure'}
