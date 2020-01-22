@@ -28,7 +28,7 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                 self.send_ok_response(resp)
             except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
-                logger.error(e)
+                logger.error(f"Error in database: {e}")
         elif self.path.startswith("/get?"):
             try:
                 query_components = dict(parse_qsl(urlparse(self.path).query))
@@ -40,12 +40,13 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                 self.send_ok_response(resp)
             except db.Error as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
-                logger.error(e)
+                logger.error(f"Error in database: {e}")
         elif self.path == "/delete_all":
             resp = json.dumps(db.clear(), indent=4)
             self.send_ok_response(resp)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+            logger.error(f"Requested path is not valid: {self.path}")
 
     def do_POST(self):
         if self.path == "/add":
@@ -57,11 +58,13 @@ class RequestDispatcher(http.server.CGIHTTPRequestHandler):
                     self.send_ok_response(resp)
                 else:
                     self.send_error(http.HTTPStatus.BAD_REQUEST)
+                    logger.error(f"Content-Type is not supported: {self.headers.get_content_type()}")
             except Exception as e:
                 self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
                 logger.error(e)
         else:
             self.send_error(http.HTTPStatus.INTERNAL_SERVER_ERROR)
+            logger.error(f"Requested path is not valid: {self.path}")
 
     def send_ok_response(self, data):
         self.send_response(http.HTTPStatus.OK)
